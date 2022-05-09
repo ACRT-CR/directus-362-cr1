@@ -10,8 +10,6 @@ import { DEFAULT_AUTH_PROVIDER } from '../constants';
 import {
 	InvalidCredentialsException,
 	InvalidOTPException,
-	UserSuspendedException,
-	InvalidProviderException,
 } from '../exceptions';
 import { createRateLimiter } from '../rate-limiter';
 import { ActivityService } from './activity';
@@ -107,19 +105,10 @@ export class AuthenticationService {
 			);
 		};
 
-		if (user?.status !== 'active') {
+		if (user?.status !== 'active' || user?.provider !== providerName) {
 			emitStatus('fail');
-
-			if (user?.status === 'suspended') {
-				await stall(STALL_TIME, timeStart);
-				throw new UserSuspendedException();
-			} else {
-				await stall(STALL_TIME, timeStart);
-				throw new InvalidCredentialsException();
-			}
-		} else if (user.provider !== providerName) {
 			await stall(STALL_TIME, timeStart);
-			throw new InvalidProviderException();
+			throw new InvalidCredentialsException();
 		}
 
 		const settingsService = new SettingsService({
